@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Tracking Location</string>
+    <string name="title_activity_main">Tracking Location</string>
+    <string name="package_name">com.cps.trackinglocation</string>
+    <string name="custom_url_scheme">com.cps.trackinglocation</string>
+</resources>
