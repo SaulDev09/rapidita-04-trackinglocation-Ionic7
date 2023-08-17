@@ -1,6 +1,6 @@
 import { Component, OnInit, NgZone } from '@angular/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators'
+import { Observable, Subscription } from 'rxjs';
+import { concatMap, map } from 'rxjs/operators'
 
 import { Collection, Feature, Overlay, Map, View } from 'ol';
 import { toLonLat, transform, fromLonLat } from 'ol/proj';
@@ -14,6 +14,8 @@ import OSM from 'ol/source/OSM';
 import { AngularFirestore, AngularFirestoreCollection, AngularFirestoreDocument } from '@angular/fire/compat/firestore';
 import firebase from 'firebase/compat/app';
 import { Geolocation } from '@capacitor/geolocation';
+
+import { interval } from 'rxjs';
 
 @Component({
   selector: 'app-map',
@@ -49,6 +51,7 @@ export class MapPage implements OnInit {
 
   public taxiDriverFollowed: AngularFirestoreDocument<any> | null = null;
   //    Map End
+  private subscription!: Subscription;
 
   constructor(
     private readonly afs: AngularFirestore,
@@ -93,10 +96,10 @@ export class MapPage implements OnInit {
   }
 
   //Tracking
-  track() {
+  trackv1(firstTrack = false) {
     this.inicializarTaxista();
 
-    this.wait = Geolocation.watchPosition({}, (position, err) => {
+    this.wait = Geolocation.watchPosition({ enableHighAccuracy: false, timeout: 500, maximumAge: 0 }, (position, err) => {
       this.ngZone.run(() => {
         if (!position) { return; }
         this.lat = position.coords.latitude;
@@ -111,18 +114,51 @@ export class MapPage implements OnInit {
         this.map.setView(
           new View({
             center: fromLonLat([this.lon, this.lat]),
-            zoom: 18,
-          })
-        )
+            zoom: firstTrack ? 18 : this.map.getView().getZoom(),
+          }));
 
+        firstTrack && (firstTrack = false)
       })
     })
   }
 
-  stopTracking() {
+  stopTrackingv1() {
     Geolocation.clearWatch({ id: this.wait });
     this.taxiDriverFollowed = null;
   }
+
+  track(firstTrack = false) {
+    this.inicializarTaxista();
+
+    const manualInterval = interval(1000);
+    this.subscription = manualInterval.pipe(
+      concatMap(val => Geolocation.getCurrentPosition())
+    ).subscribe(position => {
+      if (!position) { return; }
+      this.lat = position.coords.latitude;
+      this.lon = position.coords.longitude;
+      this.syncMarker(this.lon, this.lat, this.taxiDriverId);
+
+      this.taxiDriverFollowed?.update({
+        lat: position.coords.latitude,
+        lon: position.coords.longitude
+      });
+
+      this.map.setView(
+        new View({
+          center: fromLonLat([this.lon, this.lat]),
+          zoom: firstTrack ? 18 : this.map.getView().getZoom(),
+        }));
+
+      firstTrack && (firstTrack = false)
+    });
+  }
+
+  stopTracking() {
+    this.subscription.unsubscribe();
+    this.taxiDriverFollowed = null;
+  }
+
 
   // Firebase
   inicializarTaxista() {

@@ -1,6 +1,6 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>...:: Driver Map ::...</ion-title>
+    <ion-title>...:: Driver Map 0.0.2 ::...</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -21,7 +21,7 @@
     </ion-row>
   </ion-grid>
 
-  <ion-button color="success" (click)="track()" expand="full" class="ion-margin">Track My Location</ion-button>
+  <ion-button color="success" (click)="track(true)" expand="full" class="ion-margin">Track My Location</ion-button>
   <ion-button color="danger" (click)="stopTracking()" expand="full" class="ion-margin">Stop Tracking</ion-button>
 
   <ion-row class="ion-padding-horizontal ion-padding-top" *ngIf="taxiDriverFollowed">
